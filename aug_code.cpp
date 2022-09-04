@@ -3,6 +3,7 @@
 #include <sstream>
 #include <map>
 #include <memory>
+#include <algorithm>
 
 template <typename T>
 class mySP
@@ -76,15 +77,17 @@ auto add(T1 a, T2 b) -> decltype (a+b)
 }
 
 using namespace std;
-void dosomething();
+void dosomethingTocrash();
 void testTraits();
 void testSP();
 void testmemoryleak();
 void testdecltype();
+void testlamdas() ;
+void testvisitor() ;
 
 int main(int argc, char *argv[])
 {
-    dosomething();
+    dosomethingTocrash();
     // std::cout << "*up is again " << *up << std::endl;
 
     testTraits();
@@ -94,6 +97,10 @@ int main(int argc, char *argv[])
     testmemoryleak();
 
     testdecltype();
+
+    testlamdas() ;
+
+    testvisitor();
 }
 
 void testdecltype()
@@ -139,7 +146,7 @@ void testSP()
 //
 //
 //
-void dosomething()
+void dosomethingTocrash()
 {
     cout << "master" << endl;
     std::vector<int> vec = {1, 2, 3};
@@ -150,13 +157,13 @@ void dosomething()
     }
 
     std::cout << __func__ << ": vec[0] is " << vec[0] << std::endl;
-    // std::cout << "vec[5000] is " << vec[5000] << std::endl;
+    std::cout << "vec[5000] is " << vec[5000] << std::endl;
 
     auto up = make_unique<int>();
-    // up = 5;
+    up = nullptr;
+    *up = 5;
     std::cout << __func__ << ": *up is " << *up << std::endl;
 
-    up = nullptr;
 }
 //
 //
@@ -173,4 +180,27 @@ void testTraits()
 {
     std::cout << __func__ << ": is float<int>: " << std::is_floating_point<int>::value << std::endl;
     std::cout << __func__ << ": is float<float>: " << std::is_floating_point<float>::value << std::endl;
+}
+
+void testlamdas() {
+    auto ptr = std::make_shared<int>(1);
+    int pqr = 1;
+    auto f = [=](int &y)
+    { std::cout << __func__ << ": hi2: " << *ptr << std::endl; };
+
+    f(pqr);
+}
+//
+//
+//
+std::vector<int> myvec = {1,2,3};
+
+template <typename T>
+void visitor(std::vector<T> &vec)
+{
+    for_each(vec.begin(), vec.end(), [](const T&a ){ std::cout << __func__ << ": <<  element a is: " << a << std::endl; });
+}
+void testvisitor() {
+    std::cout << __func__ << ": testing visitor: " << std::endl;
+    visitor<int>(myvec);
 }
