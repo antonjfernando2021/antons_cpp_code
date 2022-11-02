@@ -157,10 +157,10 @@ void dosomethingTocrash()
     }
 
     std::cout << __func__ << ": vec[0] is " << vec[0] << std::endl;
-    std::cout << "vec[5000] is " << vec[5000] << std::endl;
+    //std::cout << "vec[5000] is " << vec[5000] << std::endl;
 
     auto up = make_unique<int>();
-    up = nullptr;
+    //up = nullptr; Anton nov 2 2022
     *up = 5;
     std::cout << __func__ << ": *up is " << *up << std::endl;
 
