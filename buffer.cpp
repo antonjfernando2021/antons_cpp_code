@@ -14,6 +14,7 @@
 #include <thread>
 #include <chrono>
 using namespace std;
+//jan 20-2
 
 class ringBuffer
 {
