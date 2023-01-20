@@ -28,11 +28,11 @@ class ringBuffer
         std::condition_variable consumer_waiting_till_not_empty; // not empty means, consumer can take this 
         std::condition_variable producer_waiting_till_not_full;  // not full, means producer can add things 
         std::array<int,4> ring; 
-        bool is_empty{true};
-        bool is_full{false};
-        int  tail{0};
-        int  head{0};
+        int  count{0};
+        int  tail{0}; // tail of the queue
+        int  head{0}; // head of the queue
         int  number{100};
+        const int BUF_SIZE{4};
 };
 
 void ringBuffer::Writer() // consumer 
@@ -42,21 +42,24 @@ void ringBuffer::Writer() // consumer
     while (1)
     {
         mylock.lock();
-        consumer_waiting_till_not_empty.wait( mylock, [this]() { return !is_empty; } ); // predicate which returns false if the waiting should be continued 
-        // consumer a buffer
-        printf("    Writer: consuming: ring[tail:%d] = %d\n", tail, ring.at(tail)) ; 
-        tail =  (tail + 1) % 4;
+        consumer_waiting_till_not_empty.wait( mylock, [this]() { return count > 0; } ); // predicate which returns false if the waiting should be continued 
         std::this_thread::sleep_for (std::chrono::seconds(5));
+        // consumer a buffer
+        printf("    zipWriter: consuming: ring[head:%d] = %d, count:%d\n", head, ring.at(head), count) ; 
+        head =  (head + 1) % BUF_SIZE;
+        count--;
         mylock.unlock();
+
         producer_waiting_till_not_full.notify_one(); // not full, ask producer to produce more 
+        std::this_thread::sleep_for (std::chrono::seconds(1));
     }
 }
 void ringBuffer::startThreads()
 {
-   std::thread tprod( [this] () { Reader(); } );
-   std::thread tcons( [this] () { Writer(); } );
-   tprod.join();
-   tcons.join();
+    std::thread tcons( [this] () { Writer(); } );
+    std::thread tprod( [this] () { Reader(); } );
+    tprod.join();
+    tcons.join();
 }
 
 void ringBuffer::Reader()  // producer 
@@ -66,17 +69,17 @@ void ringBuffer::Reader()  // producer
     while (1)
     {
         mylock.lock();
-        producer_waiting_till_not_full.wait( mylock, [this]() { return !is_full; } ); // predicate which returns false if the waiting should be continued 
-        // add a new buffer
-        ring.at(head) = number++;
-        printf("Reader: producing: ring[head:%d] = %d\n", head, ring.at(head)) ; 
-        is_full = (head+1 == 4) ? true:false;
-        is_empty = ! is_full;
-        head = (head + 1) % 4;
+        producer_waiting_till_not_full.wait( mylock, [this]() { return count < BUF_SIZE; } ); // predicate which returns false if the waiting should be continued 
         std::this_thread::sleep_for (std::chrono::seconds(1));
-
+        // add a new buffer
+        ring.at(tail) = number++;
+        printf("zipReader: producing: ring[tail:%d] = %d, count:%d\n", tail, ring.at(tail), count) ; 
+        tail = (tail + 1) % BUF_SIZE;
+        count++;
         mylock.unlock();
+
         consumer_waiting_till_not_empty.notify_one(); // go consumer it, there is at least 1 in the ring buffer 
+        std::this_thread::sleep_for (std::chrono::seconds(1));
     }
 }
 
